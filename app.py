@@ -31,13 +31,23 @@ from report_spec import Bullets, Figure, Prose, Section, Table
 
 st.set_page_config(page_title='Path to Conversion Copilot',
                    page_icon='✦', layout='wide',
-                   initial_sidebar_state='expanded')
+                   initial_sidebar_state='collapsed')
 
 STEPS = [
     ('Upload', 'Export and client'),
     ('Context', 'Background for the narrative'),
     ('Generate', 'Mapping, analysis, narrative'),
     ('Report', 'Read and download'),
+]
+
+# Vendors shown in the sidebar switcher. Only Gemini is wired to the runtime;
+# the rest are presentational, so the switcher stays a mockup on purpose.
+PROVIDERS = [
+    ('G', 'Gemini', 'Google · connected', True),
+    ('C', 'Claude', 'Anthropic', False),
+    ('O', 'GPT', 'OpenAI', False),
+    ('X', 'Grok', 'xAI', False),
+    ('L', 'Llama', 'Meta · self-hosted', False),
 ]
 
 STYLE_CSS = """
@@ -69,12 +79,44 @@ STYLE_CSS = """
       radial-gradient(circle at 92% 2%, rgba(207,232,252,.58), transparent 24rem),
       var(--mf-canvas);
   }
-  [data-testid="stHeader"] { background: transparent; }
+
+  /* Viewport-locked shell: the page itself never scrolls. */
+  html, body { overflow: hidden !important; }
+  [data-testid="stAppViewContainer"],
+  [data-testid="stMain"] {
+    max-height: 100dvh;
+    overflow: hidden !important;
+  }
+  [data-testid="stHeader"] {
+    height: 2.5rem;
+    min-height: 2.5rem;
+    background: transparent;
+  }
   [data-testid="stToolbar"] { display: none; }
   #MainMenu, footer { visibility: hidden; }
   .block-container {
-    padding: 1.25rem 2.5rem 5rem;
+    height: calc(100dvh - 2.5rem);
     max-width: 1160px;
+    padding: 0.35rem 2.25rem 0.75rem;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  /* Only the content region below the fixed chrome may scroll internally. */
+  .block-container > [data-testid="stVerticalBlock"] {
+    flex: 1;
+    min-height: 0;
+    gap: 0.55rem;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: #D1D2DB transparent;
+    padding-right: 4px;
+  }
+  .block-container > [data-testid="stVerticalBlock"]::-webkit-scrollbar { width: 6px; }
+  .block-container > [data-testid="stVerticalBlock"]::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: #D1D2DB;
   }
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--mf-font) !important;
@@ -90,20 +132,21 @@ STYLE_CSS = """
 
   /* App bar */
   .mf-navbar {
-    min-height: 64px;
+    flex: 0 0 auto;
+    min-height: 44px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 24px;
-    padding: 0 4px 16px;
-    margin-bottom: 20px;
+    padding: 0 4px 8px;
+    margin-bottom: 10px;
     border-bottom: 1px solid var(--mf-border);
   }
-  .mf-brand { display: flex; align-items: center; gap: 12px; }
+  .mf-brand { display: flex; align-items: center; gap: 10px; }
   .mf-mark {
-    width: 40px; height: 40px; border-radius: 12px;
+    width: 32px; height: 32px; border-radius: 10px;
     display: grid; place-items: center;
-    color: white; font-size: 22px; line-height: 1;
+    color: white; font-size: 17px; line-height: 1;
     background: linear-gradient(145deg, #7252E9, #4F24EE);
     box-shadow: var(--mf-shadow-2);
   }
@@ -128,35 +171,39 @@ STYLE_CSS = """
   /* Workflow */
   .stepper {
     position: relative;
+    flex: 0 0 auto;
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 8px;
-    margin: 0 0 24px;
-    padding: 8px;
+    gap: 6px;
+    margin: 0 0 10px;
+    padding: 6px;
     border: 1px solid var(--mf-border);
-    border-radius: 16px;
+    border-radius: 14px;
     background: rgba(255,255,255,.82);
     box-shadow: var(--mf-shadow-2);
     backdrop-filter: blur(12px);
   }
   .step {
     position: relative;
-    min-height: 68px;
-    padding: 10px 12px 10px 44px;
-    border-radius: 12px;
-    font-size: 14px;
-    line-height: 20px;
+    min-height: 42px;
+    padding: 6px 10px 6px 38px;
+    border-radius: 10px;
+    font-size: 13px;
+    line-height: 18px;
     transition: all .2s ease;
   }
   .step .n {
-    position: absolute; left: 12px; top: 12px;
-    width: 24px; height: 24px; border-radius: 50%;
+    position: absolute; left: 10px; top: 9px;
+    width: 20px; height: 20px; border-radius: 50%;
     display: grid; place-items: center;
     background: #F2F2F2; color: #737378;
-    font-size: 12px; line-height: 16px; font-weight: 500;
+    font-size: 11px; line-height: 14px; font-weight: 500;
   }
   .step .t { font-weight: 500; color: #49494B; }
-  .step .s { color: #8A8A8E; font-size: 12px; line-height: 16px; }
+  .step .s {
+    color: #8A8A8E; font-size: 11px; line-height: 15px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
   .step.done { background: #F1FDF8; }
   .step.done .n { background: #E3FCF1; color: #388E3C; }
   .step.active { background: #F0ECFE; }
@@ -169,60 +216,60 @@ STYLE_CSS = """
   /* Hero */
   .mf-hero {
     position: relative;
+    flex: 0 0 auto;
     overflow: hidden;
-    min-height: 220px;
     display: flex;
     align-items: flex-end;
-    padding: 40px;
-    margin-bottom: 24px;
+    padding: 18px 26px;
+    margin-bottom: 12px;
     border: 1px solid rgba(255,255,255,.78);
-    border-radius: 24px;
+    border-radius: 18px;
     background: linear-gradient(101deg, #CFE8FC 0%, #ECF4FE 16%, #F7F6FE 52%, #FAF6FD 87%, #FFF3F6 100%);
     box-shadow: var(--mf-shadow-4);
   }
   .mf-hero::after {
     content: '';
-    position: absolute; width: 240px; height: 240px;
-    right: -54px; top: -86px; border-radius: 50%;
-    border: 46px solid rgba(79,36,238,.10);
-    box-shadow: 0 0 0 28px rgba(15,140,240,.07);
+    position: absolute; width: 190px; height: 190px;
+    right: -48px; top: -74px; border-radius: 50%;
+    border: 38px solid rgba(79,36,238,.10);
+    box-shadow: 0 0 0 22px rgba(15,140,240,.07);
   }
-  .mf-hero-content { position: relative; z-index: 1; max-width: 760px; }
+  .mf-hero-content { position: relative; z-index: 1; max-width: 780px; }
   .mf-eyebrow {
-    display: inline-flex; align-items: center; gap: 7px;
-    margin-bottom: 14px; padding: 4px 10px;
+    display: inline-flex; align-items: center; gap: 6px;
+    margin-bottom: 8px; padding: 2px 9px;
     border-radius: 999px; background: rgba(255,255,255,.72);
-    color: var(--mf-plum); font-size: 12px; line-height: 16px;
+    color: var(--mf-plum); font-size: 11px; line-height: 15px;
     font-weight: 500; backdrop-filter: blur(8px);
   }
-  .mf-eyebrow::before { content: '✦'; font-size: 11px; }
+  .mf-eyebrow::before { content: '✦'; font-size: 10px; }
   .hero-title {
-    max-width: 720px;
-    margin-bottom: 8px;
+    max-width: 740px;
+    margin-bottom: 3px;
     color: #3C3C3E;
-    font-size: 40px;
-    line-height: 48px;
+    font-size: 26px;
+    line-height: 32px;
     font-weight: 400;
     letter-spacing: -0.04em;
   }
   .hero-sub {
-    max-width: 700px;
+    max-width: 720px;
     color: #5D5D60;
-    font-size: 16px;
-    line-height: 24px;
+    font-size: 13px;
+    line-height: 18px;
     letter-spacing: -0.01em;
   }
 
   /* Native Streamlit controls */
   div.stButton > button, div.stDownloadButton > button {
-    min-height: 48px;
-    padding: 0 24px;
+    min-height: 40px;
+    padding: 0 18px;
     border-radius: 12px;
     border: 1px solid var(--mf-border-strong);
     background: #fff;
     color: var(--mf-text);
-    font-size: 16px;
-    line-height: 24px;
+    font-size: 14px;
+    line-height: 20px;
     font-weight: 500;
     box-shadow: none;
     transition: all .2s ease;
@@ -257,7 +304,7 @@ STYLE_CSS = """
     color: var(--mf-text) !important;
     box-shadow: none !important;
   }
-  [data-testid="stTextInput"] input { min-height: 48px; }
+  [data-testid="stTextInput"] input { min-height: 40px; }
   [data-testid="stTextInput"] input:focus,
   [data-testid="stTextArea"] textarea:focus {
     border-color: var(--mf-plum) !important;
@@ -272,7 +319,8 @@ STYLE_CSS = """
     box-shadow: var(--mf-shadow-2);
   }
   [data-testid="stFileUploaderDropzone"] {
-    min-height: 148px;
+    min-height: 92px;
+    padding: 10px 14px;
     border: 1px dashed #A892F7;
     border-radius: 12px;
     background: var(--mf-plum-soft);
@@ -282,16 +330,18 @@ STYLE_CSS = """
     color: var(--mf-plum); background: #fff;
   }
   [data-testid="stMetric"] {
-    min-height: 108px;
-    padding: 20px;
+    min-height: 74px;
+    padding: 12px 14px;
     border: 1px solid var(--mf-border);
-    border-radius: 16px;
+    border-radius: 14px;
     background: #fff;
     box-shadow: var(--mf-shadow-2);
   }
   [data-testid="stMetricLabel"] { color: var(--mf-muted); }
+  [data-testid="stMetricLabel"] p { font-size: 12px !important; line-height: 16px; }
   [data-testid="stMetricValue"] {
     color: var(--mf-text);
+    font-size: 24px;
     font-weight: 400;
     letter-spacing: -0.04em;
   }
@@ -312,15 +362,37 @@ STYLE_CSS = """
     overflow: hidden;
     box-shadow: var(--mf-shadow-2);
   }
+  /* Tabs own the remaining height; only the active panel scrolls. */
+  [data-testid="stTabs"] {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
   [data-testid="stTabs"] [data-baseweb="tab-list"] {
+    flex: 0 0 auto;
     gap: 6px;
-    padding: 5px;
+    padding: 4px;
     border-radius: 12px;
     background: #F2F2F2;
   }
+  [data-testid="stTabs"] [data-baseweb="tab-panel"] {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 8px 6px 0 0;
+    scrollbar-width: thin;
+    scrollbar-color: #D1D2DB transparent;
+  }
+  [data-testid="stTabs"] [data-baseweb="tab-panel"]::-webkit-scrollbar { width: 6px; }
+  [data-testid="stTabs"] [data-baseweb="tab-panel"]::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: #D1D2DB;
+  }
   [data-testid="stTabs"] button[role="tab"] {
-    height: 38px;
-    padding: 0 18px;
+    height: 34px;
+    padding: 0 16px;
     border-radius: 8px;
     color: #737378;
   }
@@ -344,8 +416,8 @@ STYLE_CSS = """
     font-size: 20px;
     line-height: 28px;
   }
-  [data-testid="stSidebar"] hr { border-color: var(--mf-border); }
-  [data-testid="stSidebar"] div.stButton > button { min-height: 40px; font-size: 14px; }
+  [data-testid="stSidebar"] hr { border-color: var(--mf-border); margin: 0.5rem 0; }
+  [data-testid="stSidebar"] div.stButton > button { min-height: 36px; font-size: 13px; }
   .mf-sidebar-kicker {
     color: var(--mf-plum);
     font-size: 12px;
@@ -355,34 +427,141 @@ STYLE_CSS = """
     letter-spacing: .0071em;
   }
 
+  /* Open / close control for the settings rail */
+  [data-testid="stSidebarCollapseButton"] button,
+  [data-testid="stExpandSidebarButton"] button,
+  [data-testid="collapsedControl"] button {
+    width: 36px;
+    height: 36px;
+    border: 1px solid var(--mf-border-strong) !important;
+    border-radius: 10px !important;
+    background: #fff !important;
+    color: var(--mf-plum) !important;
+    box-shadow: var(--mf-shadow-2) !important;
+  }
+  [data-testid="stSidebarCollapseButton"] button:hover,
+  [data-testid="stExpandSidebarButton"] button:hover,
+  [data-testid="collapsedControl"] button:hover {
+    border-color: var(--mf-plum) !important;
+    background: var(--mf-plum-soft) !important;
+  }
+
+  /* Collapsible groups inside the rail */
+  [data-testid="stSidebar"] [data-testid="stExpander"] {
+    border-radius: 12px;
+    box-shadow: none;
+  }
+  [data-testid="stSidebar"] [data-testid="stExpander"] summary {
+    padding: 8px 12px;
+    font-size: 13px;
+    font-weight: 500;
+  }
+  [data-testid="stSidebar"] [data-testid="stExpander"] summary:hover {
+    color: var(--mf-plum);
+  }
+
+  /* Visual-only model provider switcher */
+  .mf-providers { display: flex; flex-direction: column; gap: 6px; }
+  .mf-provider {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border: 1px solid var(--mf-border);
+    border-radius: 10px;
+    background: #fff;
+    cursor: pointer;
+    transition: all .2s ease;
+  }
+  .mf-provider:hover {
+    border-color: var(--mf-plum);
+    background: var(--mf-plum-soft);
+    transform: translateY(-1px);
+  }
+  .mf-provider.is-active {
+    border-color: var(--mf-plum);
+    background: #F0ECFE;
+  }
+  .mf-provider-glyph {
+    width: 24px; height: 24px; flex: 0 0 24px;
+    display: grid; place-items: center;
+    border-radius: 7px;
+    background: #F2F2F2;
+    color: #52566A;
+    font-size: 11px; font-weight: 500;
+  }
+  .mf-provider.is-active .mf-provider-glyph {
+    background: var(--mf-plum); color: #fff;
+  }
+  .mf-provider-body { flex: 1; min-width: 0; }
+  .mf-provider-name {
+    font-size: 13px; line-height: 18px; font-weight: 500;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .mf-provider-meta {
+    color: #8A8A8E;
+    font-size: 11px; line-height: 15px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .mf-provider-tag {
+    flex: 0 0 auto;
+    padding: 1px 8px;
+    border-radius: 999px;
+    background: #F2F2F2;
+    color: #737378;
+    font-size: 10px; line-height: 15px; font-weight: 500;
+  }
+  .mf-provider.is-active .mf-provider-tag {
+    background: var(--mf-plum); color: #fff;
+  }
+
+  /* Compact page header used where a hero would waste height */
+  .mf-page-head { padding: 2px 0 4px; }
+  .mf-page-title {
+    font-size: 24px; line-height: 30px; font-weight: 400;
+    letter-spacing: -0.04em;
+  }
+  .mf-page-meta {
+    color: #737378;
+    font-size: 13px; line-height: 18px;
+  }
+
+  /* Tabs must own the leftover height, so their wrapper stretches. */
+  [data-testid="stElementContainer"]:has(> [data-testid="stTabs"]) {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
   /* Content cards */
   .report-shell {
     border: 1px solid var(--mf-border);
-    border-radius: 24px;
-    padding: 40px;
-    margin-top: 16px;
+    border-radius: 18px;
+    padding: 22px 26px;
+    margin-top: 2px;
     background: #fff;
-    box-shadow: var(--mf-shadow-4);
+    box-shadow: var(--mf-shadow-2);
   }
   .report-shell h2 {
-    margin: 48px 0 16px;
-    padding-bottom: 12px;
+    margin: 28px 0 12px;
+    padding-bottom: 8px;
     border-bottom: 1px solid var(--mf-border);
-    font-size: 24px;
-    line-height: 32px;
+    font-size: 20px;
+    line-height: 28px;
   }
   .report-shell h2:first-child { margin-top: 0; }
   .cover-title {
-    font-size: 36px; line-height: 44px; font-weight: 400;
+    font-size: 26px; line-height: 32px; font-weight: 400;
     letter-spacing: -0.04em;
   }
   .cover-sub {
-    margin: 4px 0 20px;
+    margin: 2px 0 14px;
     color: var(--mf-plum);
-    font-size: 20px; line-height: 28px;
+    font-size: 16px; line-height: 24px;
   }
   .cover-meta {
-    padding: 16px;
+    padding: 14px;
     border-radius: 12px;
     background: var(--mf-blue-soft);
     color: #5D5D60;
@@ -392,9 +571,9 @@ STYLE_CSS = """
     position: relative;
     height: 100%;
     overflow: hidden;
-    padding: 20px;
+    padding: 12px 14px;
     border: 1px solid var(--mf-border);
-    border-radius: 16px;
+    border-radius: 14px;
     background: #fff;
     box-shadow: var(--mf-shadow-2);
     transition: all .2s ease;
@@ -409,16 +588,16 @@ STYLE_CSS = """
   }
   .agent-card .lbl {
     color: #8A8A8E;
-    font-size: 12px; line-height: 16px;
+    font-size: 11px; line-height: 15px;
     letter-spacing: .0071em; font-weight: 500;
   }
   .agent-card .nm {
-    margin: 12px 0 6px;
-    font-size: 16px; line-height: 24px; font-weight: 500;
+    margin: 5px 0 3px;
+    font-size: 14px; line-height: 20px; font-weight: 500;
   }
   .agent-card .ds {
     color: #737378;
-    font-size: 14px; line-height: 20px;
+    font-size: 12px; line-height: 17px;
   }
   .badge {
     display: inline-flex;
@@ -430,20 +609,33 @@ STYLE_CSS = """
   .badge.ai { background: #F0ECFE; color: var(--mf-plum); }
   .badge.calc { background: #E3FCF1; color: #388E3C; }
 
+  /* Short viewports: shed the decorative height first. */
+  @media (max-height: 820px) {
+    .hero-title { font-size: 22px; line-height: 28px; }
+    .hero-sub { font-size: 12px; line-height: 17px; }
+    .mf-hero { padding: 14px 22px; margin-bottom: 10px; }
+    .step .s { display: none; }
+    .step { min-height: 34px; padding: 7px 10px 7px 36px; }
+    .step .n { top: 7px; }
+  }
+  @media (max-height: 680px) {
+    .mf-hero { display: none; }
+    [data-testid="stMetric"] { min-height: 62px; padding: 10px 12px; }
+    [data-testid="stMetricValue"] { font-size: 20px; }
+  }
+
   @media (max-width: 900px) {
-    .block-container { padding: 1rem 1rem 3rem; }
+    .block-container { padding: 0.35rem 1rem 0.6rem; }
     .stepper { grid-template-columns: repeat(2, 1fr); }
-    .mf-hero { min-height: 200px; padding: 28px 24px; }
-    .hero-title { font-size: 36px; line-height: 44px; }
-    .report-shell { padding: 24px; }
+    .report-shell { padding: 16px 18px; }
   }
   @media (max-width: 560px) {
-    .mf-navbar { align-items: flex-start; }
     .mf-nav-status { display: none; }
-    .stepper { grid-template-columns: 1fr; }
-    .step { min-height: 58px; }
-    .mf-hero { min-height: 230px; }
-    .hero-title { font-size: 32px; line-height: 40px; }
+    .stepper { grid-template-columns: repeat(4, 1fr); }
+    .step { padding: 7px 6px; min-height: 34px; }
+    .step .n { position: static; margin-bottom: 2px; }
+    .step .t { font-size: 11px; }
+    .hero-title { font-size: 20px; line-height: 26px; }
   }
 </style>
 """
@@ -499,56 +691,70 @@ def make_client(api_key: str, model: str) -> GeminiClient | None:
         return None
 
 
+def provider_switcher():
+    """Presentational only: shows where other model vendors would be selected.
+
+    Nothing here is wired to the runtime, which uses the Gemini chain below.
+    """
+    cards = []
+    for glyph, name, meta, active in PROVIDERS:
+        cards.append(
+            f"<div class='mf-provider{' is-active' if active else ''}'>"
+            f"<div class='mf-provider-glyph'>{escape(glyph)}</div>"
+            f"<div class='mf-provider-body'><div class='mf-provider-name'>{escape(name)}</div>"
+            f"<div class='mf-provider-meta'>{escape(meta)}</div></div>"
+            f"<div class='mf-provider-tag'>{'In use' if active else 'Preview'}</div>"
+            "</div>")
+    st.markdown(f"<div class='mf-providers'>{''.join(cards)}</div>",
+                unsafe_allow_html=True)
+    st.caption('Only Gemini is connected. The other vendors are a design preview.')
+
+
 def sidebar() -> tuple[GeminiClient | None, str, bool]:
     with st.sidebar:
         st.markdown("<div class='mf-sidebar-kicker'>Workspace controls</div>",
                     unsafe_allow_html=True)
-        st.markdown('### Gemini')
+        st.caption('Use the arrow above to hide or show this panel.')
 
-        env_key = os.environ.get('GEMINI_API_KEY', '')
-        api_key = st.text_input(
-            'API key', value='', type='password',
-            placeholder='Loaded from .env' if env_key else 'Paste your Gemini API key',
-            help='Leave blank to use GEMINI_API_KEY from .env.')
+        with st.expander('Model provider', expanded=True):
+            provider_switcher()
 
-        model = st.selectbox('Model', SELECTABLE_MODELS,
-                             index=SELECTABLE_MODELS.index(DEFAULT_MODEL),
-                             help='If this model is busy, the next ones are tried '
-                                  'automatically.')
+        with st.expander('Gemini credentials', expanded=False):
+            env_key = os.environ.get('GEMINI_API_KEY', '')
+            api_key = st.text_input(
+                'API key', value='', type='password',
+                placeholder='Loaded from .env' if env_key else 'Paste your Gemini API key',
+                help='Leave blank to use GEMINI_API_KEY from .env.')
 
-        client = make_client(api_key, model)
-        if client is None:
-            st.error('No API key. Add GEMINI_API_KEY to .env or paste one above.')
-        else:
-            if st.button('Test connection', width='stretch'):
+            model = st.selectbox('Model', SELECTABLE_MODELS,
+                                 index=SELECTABLE_MODELS.index(DEFAULT_MODEL),
+                                 help='If this model is busy, the next ones are tried '
+                                      'automatically.')
+
+            client = make_client(api_key, model)
+            if client is not None and st.button('Test connection', width='stretch'):
                 try:
                     st.session_state['gemini_status'] = f'Connected via {client.check()}'
                 except GeminiError as exc:
                     st.session_state['gemini_status'] = f'Failed: {exc}'
-            if st.session_state['gemini_status']:
-                status = st.session_state['gemini_status']
-                (st.success if status.startswith('Connected') else st.error)(status)
-            else:
-                st.caption('Key loaded. Ready.')
 
-        st.divider()
-        st.markdown('### Narrative')
-        style = st.radio('Writing style', list(narrative_agent.STYLES),
-                         index=list(narrative_agent.STYLES).index(narrative_agent.DEFAULT_STYLE),
-                         help='How the narrative agent should rewrite the prose. '
-                              'Numbers never change.')
-        rewrite = st.toggle('Rewrite narrative with Gemini', value=True,
-                            help='Off, the report keeps the deterministic wording.')
+        # Kept outside the collapsed groups so a bad key is never hidden.
+        if client is None:
+            st.error('No API key. Add GEMINI_API_KEY to .env or paste one in '
+                     'Gemini credentials.')
+        elif st.session_state['gemini_status']:
+            status = st.session_state['gemini_status']
+            (st.success if status.startswith('Connected') else st.error)(status)
 
-        st.divider()
-        st.markdown('### Progress')
-        current = st.session_state['step']
-        for i, (name, _) in enumerate(STEPS, start=1):
-            mark = '✓' if i < current else ('▸' if i == current else '·')
-            st.markdown(f"{mark} **{name}**" if i == current else f"{mark} {name}")
+        with st.expander('Narrative', expanded=False):
+            style = st.radio('Writing style', list(narrative_agent.STYLES),
+                             index=list(narrative_agent.STYLES).index(narrative_agent.DEFAULT_STYLE),
+                             help='How the narrative agent should rewrite the prose. '
+                                  'Numbers never change.')
+            rewrite = st.toggle('Rewrite narrative with Gemini', value=True,
+                                help='Off, the report keeps the deterministic wording.')
 
         if st.session_state['run'] is not None or st.session_state['info'] is not None:
-            st.divider()
             if st.button('Start over', width='stretch'):
                 for key in DEFAULTS:
                     st.session_state[key] = DEFAULTS[key]
@@ -668,7 +874,6 @@ def step_upload():
                     f"<span class='badge {badge}'>{kind}</span></div>"
                     f"<div class='nm'>{name}</div><div class='ds'>{desc}</div></div>",
                     unsafe_allow_html=True)
-                st.write('')
         else:
             st.markdown('#### Detected')
             c1, c2 = st.columns(2)
@@ -687,12 +892,11 @@ def step_upload():
             if info.meta:
                 st.dataframe(
                     pd.DataFrame({'Field': list(info.meta), 'Value': list(info.meta.values())}),
-                    hide_index=True, width='stretch')
+                    hide_index=True, width='stretch', height=180)
             preview = pd.read_csv(info.path, skiprows=info.header_row, nrows=8,
                                   low_memory=False)
-            st.dataframe(preview, width='stretch')
+            st.dataframe(preview, width='stretch', height=200)
 
-        st.divider()
         ready = bool(st.session_state['client_name'].strip())
         if not ready:
             st.info('Add a client name to continue.')
@@ -726,7 +930,7 @@ def step_context():
     with left:
         context = st.text_area(
             f"Background on {st.session_state['client_name'] or 'the client'}",
-            value=st.session_state['context'], height=340,
+            value=st.session_state['context'], height=200,
             placeholder=CONTEXT_PLACEHOLDER)
         if context != st.session_state['context']:
             st.session_state['context'] = context
@@ -744,7 +948,6 @@ def step_context():
         st.info('The numbers are computed before the narrative is written, so no amount '
                 'of context can move them.', icon='🔒')
 
-    st.divider()
     back, fwd = st.columns([1, 3])
     if back.button('Back'):
         goto(1)
@@ -782,7 +985,7 @@ def taxonomy_editor(mapping) -> rc.Taxonomy:
         st.markdown('**Campaigns to channels**')
         campaigns = st.data_editor(
             pd.DataFrame(st.session_state['campaign_rows']),
-            hide_index=True, width='stretch', key='campaign_editor',
+            hide_index=True, width='stretch', height=230, key='campaign_editor',
             column_config={
                 'Campaign': st.column_config.TextColumn(disabled=True),
                 'Channel': st.column_config.SelectboxColumn(options=channels, required=True),
@@ -791,7 +994,7 @@ def taxonomy_editor(mapping) -> rc.Taxonomy:
         st.markdown('**Sites to platforms**')
         sites = st.data_editor(
             pd.DataFrame(st.session_state['site_rows']),
-            hide_index=True, width='stretch', key='site_editor',
+            hide_index=True, width='stretch', height=230, key='site_editor',
             column_config={
                 'Site (CM360)': st.column_config.TextColumn(disabled=True),
                 'Platform': st.column_config.TextColumn(
@@ -833,7 +1036,6 @@ def step_generate(client: GeminiClient | None, style: str, rewrite: bool):
             st.session_state['progress_log'] = log
             st.rerun()
 
-        st.divider()
         if st.button('Back'):
             goto(2)
             st.rerun()
@@ -878,11 +1080,8 @@ def step_generate(client: GeminiClient | None, style: str, rewrite: bool):
             help='Leave empty to derive it from the first mid-funnel touch in the data.')
         steady = pd.Timestamp(override) if override else None
 
-    st.divider()
-    st.markdown('#### Analysis and narrative agent')
-    st.write('The analysis computes the metrics and charts in plain Python, with no AI '
-             'involved. The narrative agent then writes the prose around those numbers, '
-             'and any figure it cannot verify against them is rejected.')
+    st.caption('Next, the analysis computes every metric and chart in plain Python, then '
+               'the narrative agent writes the prose around those verified numbers.')
 
     back, fwd = st.columns([1, 3])
     if back.button('Re-run mapping'):
@@ -970,15 +1169,15 @@ def step_report():
     spec = run.spec
     m = run.metrics
 
-    page_hero(
-        'Report complete',
-        f'{spec.client_name} · intelligence ready',
-        spec.subtitle,
-    )
-
     head, actions = st.columns([3, 1], gap='large')
     with head:
-        st.caption('Verified analysis · AI-assisted narrative · Export-ready document')
+        st.markdown(
+            "<div class='mf-page-head'>"
+            f"<div class='mf-eyebrow'>Report complete</div>"
+            f"<div class='mf-page-title'>{escape(spec.client_name)} · intelligence ready</div>"
+            f"<div class='mf-page-meta'>{escape(spec.subtitle)}</div>"
+            "</div>",
+            unsafe_allow_html=True)
     with actions:
         with open(run.docx_path, 'rb') as f:
             st.download_button(

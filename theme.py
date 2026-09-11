@@ -641,7 +641,10 @@ STYLESHEET = """
   .report-shell h2:first-child { margin-top: 0; }
 
   /* -------------------------------------------------------- settings rail */
+  /* Wide enough that the five provider pills sit on one line */
   [data-testid="stSidebar"] {
+    width: 340px !important;
+    min-width: 340px !important;
     border-right: 1px solid var(--line);
     background: var(--surface);
   }
@@ -669,24 +672,30 @@ STYLESHEET = """
     letter-spacing: -0.02em;
   }
 
-  /* Provider pills: a grid, so every vendor gets the same footprint */
+  /* Provider pills: one row of five, every vendor the same footprint */
   [data-testid="stButtonGroup"] {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 6px;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 5px;
   }
   [data-testid="stButtonGroup"] button {
     width: 100%;
     min-height: 30px;
-    padding: 0 10px;
+    padding: 0 4px;
     justify-content: center;
     border: 1px solid var(--line);
     border-radius: 999px;
     background: var(--surface);
     color: var(--ink-soft);
-    font-size: 12px; line-height: 16px; font-weight: 500;
+    font-size: 11px; line-height: 15px; font-weight: 500;
     letter-spacing: -0.01em;
+    white-space: nowrap;
     transition: all .2s ease;
+  }
+  [data-testid="stButtonGroup"] button p {
+    font-size: 11px !important;
+    line-height: 15px;
+    white-space: nowrap;
   }
   [data-testid="stButtonGroup"] button:hover {
     border-color: var(--plum);

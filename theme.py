@@ -216,7 +216,8 @@ STYLESHEET = """
     position: relative;
     flex: 0 0 auto;
     overflow: hidden;
-    padding: 26px 32px 28px;
+    margin: 8px 0 6px;
+    padding: 40px 32px 42px;
     border: 1px solid rgba(255, 255, 255, 0.8);
     border-radius: var(--r-xl);
     background: linear-gradient(101deg, #CFE8FC 0%, #ECF4FE 16%,
@@ -235,7 +236,7 @@ STYLESHEET = """
   .mf-hero-content { position: relative; z-index: 1; margin: 0 auto; max-width: 660px; }
   .mf-eyebrow {
     display: inline-flex; align-items: center; gap: 6px;
-    margin-bottom: 10px;
+    margin-bottom: 18px;
     padding: 3px 11px;
     border-radius: 999px;
     background: rgba(255, 255, 255, 0.78);
@@ -246,7 +247,7 @@ STYLESHEET = """
     backdrop-filter: blur(8px);
   }
   .hero-title {
-    margin-bottom: 6px;
+    margin-bottom: 14px;
     color: var(--ink);
     font-size: 32px; line-height: 38px; font-weight: 400;
     letter-spacing: -0.04em;
@@ -288,10 +289,15 @@ STYLESHEET = """
     background: var(--surface);
     box-shadow: var(--shadow-2);
   }
+  /* The three stage cards are one row, so they share a single height. */
   .mf-stage {
     position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
     height: 100%;
-    padding: 16px 18px;
+    min-height: 216px;
+    padding: 18px;
     border: 1px solid var(--line);
     border-radius: var(--r-lg);
     background: var(--surface);
@@ -320,7 +326,7 @@ STYLESHEET = """
   .mf-stage-desc { color: var(--muted); font-size: 12px; line-height: 17px; }
   .mf-stage-tag {
     display: inline-flex;
-    margin-top: 10px;
+    margin-top: auto;
     padding: 2px 10px;
     border-radius: 999px;
     background: var(--grey-100);
@@ -430,12 +436,30 @@ STYLESHEET = """
     background: var(--surface);
     box-shadow: var(--shadow-2);
   }
+  /* Everything inside the drop area sits on its centre line */
   [data-testid="stFileUploaderDropzone"] {
-    min-height: 96px;
-    padding: 12px 16px;
+    min-height: 128px;
+    padding: 18px 16px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
     border: 1px dashed var(--plum-200);
     border-radius: var(--r-md);
     background: var(--plum-50);
+    text-align: center;
+  }
+  [data-testid="stFileUploaderDropzoneInstructions"] {
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    text-align: center;
+  }
+  [data-testid="stFileUploaderDropzoneInstructions"] > div {
+    align-items: center;
+    text-align: center;
   }
   [data-testid="stFileUploaderDropzone"] button {
     border-color: var(--plum);
@@ -443,6 +467,8 @@ STYLESHEET = """
     background: var(--surface);
     color: var(--plum);
   }
+  [data-testid="stFileUploader"] label { justify-content: center; }
+  [data-testid="stFileUploader"] [data-testid="stWidgetLabel"] p { text-align: center; }
 
   /* Toggles, radios and checkboxes follow the accent */
   [data-baseweb="checkbox"] [data-checked="true"],
@@ -634,16 +660,39 @@ STYLESHEET = """
     font-weight: 500;
   }
   .mf-rail-title {
+    margin-bottom: 2px;
     color: var(--ink);
-    font-size: 15px; line-height: 20px; font-weight: 500;
+    font-size: 15px; line-height: 22px; font-weight: 500;
     letter-spacing: -0.01em;
   }
-  .mf-rail-label {
-    margin: 6px 0 2px;
-    color: var(--faint);
-    font-size: 10px; line-height: 15px; font-weight: 500;
-    letter-spacing: 0.0071em;
-    text-transform: uppercase;
+
+  /* Provider pills: five vendors without five stacked buttons */
+  [data-testid="stButtonGroup"] {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  [data-testid="stButtonGroup"] button {
+    min-height: 30px;
+    padding: 0 12px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--surface);
+    color: var(--ink-soft);
+    font-size: 12px; line-height: 16px; font-weight: 500;
+    letter-spacing: -0.01em;
+    transition: all .2s ease;
+  }
+  [data-testid="stButtonGroup"] button:hover {
+    border-color: var(--plum);
+    color: var(--plum);
+    background: var(--plum-50);
+  }
+  [data-testid="stButtonGroup"] button[aria-checked="true"],
+  [data-testid="stButtonGroup"] button[aria-pressed="true"] {
+    border-color: var(--plum);
+    background: var(--plum);
+    color: #fff;
   }
 
   /* Open control lives in the toolbar, so it carries a label */
@@ -689,19 +738,30 @@ STYLESHEET = """
   /* ------------------------------------------------------------- spacing */
   [data-testid="stColumn"] [data-testid="stVerticalBlock"] { gap: 12px; }
   [data-testid="stColumn"] { display: flex; flex-direction: column; }
+  /* Columns in a row stretch, so cards inside them can match heights. */
+  [data-testid="stHorizontalBlock"] { align-items: stretch; }
+  [data-testid="stColumn"] > [data-testid="stVerticalBlock"] { height: 100%; }
+  [data-testid="stElementContainer"]:has(.mf-stage),
+  [data-testid="stElementContainer"]:has(.mf-stage) [data-testid="stMarkdownContainer"] {
+    height: 100%;
+  }
 
   /* ------------------------------------------------- short viewports */
   @media (max-height: 860px) {
-    .mf-hero { padding: 18px 28px 20px; }
-    .hero-title { font-size: 26px; line-height: 32px; }
+    .mf-hero { margin: 4px 0 2px; padding: 28px 28px 30px; }
+    .mf-eyebrow { margin-bottom: 12px; }
+    .hero-title { font-size: 26px; line-height: 32px; margin-bottom: 10px; }
     .hero-sub { font-size: 13px; line-height: 19px; }
+    .mf-stage { min-height: 196px; }
     .report-shell { padding: 22px 24px; }
   }
   @media (max-height: 720px) {
-    .mf-hero { padding: 14px 24px 15px; }
+    .mf-hero { margin: 0; padding: 20px 24px 22px; }
     .mf-eyebrow { display: none; }
-    .hero-title { font-size: 22px; line-height: 27px; }
+    .hero-title { font-size: 22px; line-height: 27px; margin-bottom: 8px; }
     .step { padding: 6px 8px; }
+    .mf-stage { min-height: 178px; padding: 14px; }
+    [data-testid="stFileUploaderDropzone"] { min-height: 108px; }
     [data-testid="stMetric"] { padding: 10px 12px; }
     [data-testid="stMetricValue"] { font-size: 21px; }
   }

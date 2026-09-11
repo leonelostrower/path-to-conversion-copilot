@@ -165,16 +165,14 @@ def make_client(api_key: str, model: str) -> GeminiClient | None:
 
 def provider_picker() -> dict:
     """Vendor list. Selecting one drives the credential fields underneath."""
-    st.markdown("<div class='mf-rail-label'>Model provider</div>", unsafe_allow_html=True)
-    active = st.session_state['provider']
-    for provider in PROVIDERS:
-        chosen = provider['key'] == active
-        if st.button(f"{provider['glyph']}   {provider['name']}",
-                     key=f"provider_{provider['key']}", width='stretch',
-                     type='primary' if chosen else 'secondary'):
-            st.session_state['provider'] = provider['key']
-            st.rerun()
-    return next(p for p in PROVIDERS if p['key'] == st.session_state['provider'])
+    by_name = {p['name']: p for p in PROVIDERS}
+    current = next(p for p in PROVIDERS if p['key'] == st.session_state['provider'])
+
+    picked = st.pills('Model provider', list(by_name), default=current['name'],
+                      key='provider_pills', width='stretch')
+    provider = by_name.get(picked, current)
+    st.session_state['provider'] = provider['key']
+    return provider
 
 
 def sidebar() -> tuple[GeminiClient | None, str, bool]:
@@ -184,7 +182,6 @@ def sidebar() -> tuple[GeminiClient | None, str, bool]:
         provider = provider_picker()
         live = provider['key'] == GEMINI
 
-        st.markdown("<div class='mf-rail-label'>Credentials</div>", unsafe_allow_html=True)
         env_key = os.environ.get('GEMINI_API_KEY', '')
         api_key = st.text_input(
             'API key', value='', type='password', disabled=not live,
@@ -214,7 +211,6 @@ def sidebar() -> tuple[GeminiClient | None, str, bool]:
             status = st.session_state['gemini_status']
             (st.success if status.startswith('Connected') else st.error)(status)
 
-        st.markdown("<div class='mf-rail-label'>Narrative</div>", unsafe_allow_html=True)
         style = st.radio('Writing style', list(narrative_agent.STYLES),
                          index=list(narrative_agent.STYLES).index(narrative_agent.DEFAULT_STYLE))
         rewrite = st.toggle('Rewrite with the narrative agent', value=True)

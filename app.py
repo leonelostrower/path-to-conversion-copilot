@@ -14,6 +14,7 @@ Run with:  streamlit run app.py
 from __future__ import annotations
 
 import os
+from html import escape
 
 # matplotlib must find a writable config dir before report_core imports it.
 os.environ.setdefault('MPLCONFIGDIR', os.path.join(os.path.dirname(os.path.abspath(__file__)), '.mplcache'))
@@ -29,7 +30,7 @@ from agents.gemini_client import (
 from report_spec import Bullets, Figure, Prose, Section, Table
 
 st.set_page_config(page_title='Path to Conversion Copilot',
-                   page_icon='📊', layout='wide',
+                   page_icon='✦', layout='wide',
                    initial_sidebar_state='expanded')
 
 STEPS = [
@@ -41,44 +42,409 @@ STEPS = [
 
 STYLE_CSS = """
 <style>
-  .block-container { padding-top: 2.2rem; max-width: 1180px; }
-  .stepper { display: flex; gap: 0.4rem; margin: 0 0 1.6rem 0; }
-  .step {
-    flex: 1; padding: 0.55rem 0.8rem; border-radius: 8px;
-    border: 1px solid rgba(128,128,128,0.25); font-size: 0.82rem; line-height: 1.25;
+  :root {
+    --mf-font: 'Helvetica Now for Monks', Helvetica, Arial, sans-serif;
+    --mf-text: #3C3C3E;
+    --mf-muted: #737378;
+    --mf-plum: #4F24EE;
+    --mf-plum-dark: #3B11D5;
+    --mf-blue: #0F8CF0;
+    --mf-border: rgba(0, 0, 0, 0.12);
+    --mf-border-strong: rgba(0, 0, 0, 0.19);
+    --mf-surface: #FFFFFF;
+    --mf-canvas: #F7F7F7;
+    --mf-plum-soft: #F7F6FE;
+    --mf-blue-soft: #F1F6FF;
+    --mf-green-soft: #F1FDF8;
+    --mf-shadow-2: 0 2px 7px rgba(0, 0, 0, 0.10);
+    --mf-shadow-4: 0 4px 16px rgba(0, 0, 0, 0.10);
   }
-  .step .n { font-weight: 700; font-size: 0.72rem; opacity: 0.55; letter-spacing: .06em; }
-  .step .t { font-weight: 600; }
-  .step .s { opacity: 0.62; font-size: 0.74rem; }
-  .step.done { border-color: #356854; background: rgba(53,104,84,0.10); }
-  .step.active { border-color: #356854; background: rgba(53,104,84,0.24); }
-  .hero-title { font-size: 1.9rem; font-weight: 700; margin-bottom: 0.15rem; }
-  .hero-sub { opacity: 0.7; margin-bottom: 1.4rem; }
+
+  html, body, [class*="css"], [data-testid="stAppViewContainer"] {
+    font-family: var(--mf-font);
+    color: var(--mf-text);
+  }
+  [data-testid="stAppViewContainer"] {
+    background:
+      radial-gradient(circle at 92% 2%, rgba(207,232,252,.58), transparent 24rem),
+      var(--mf-canvas);
+  }
+  [data-testid="stHeader"] { background: transparent; }
+  [data-testid="stToolbar"] { display: none; }
+  #MainMenu, footer { visibility: hidden; }
+  .block-container {
+    padding: 1.25rem 2.5rem 5rem;
+    max-width: 1160px;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--mf-font) !important;
+    color: var(--mf-text);
+    font-weight: 500 !important;
+    letter-spacing: -0.04em !important;
+  }
+  p, label, li, input, textarea, button {
+    font-family: var(--mf-font) !important;
+    letter-spacing: -0.01em;
+  }
+  strong { font-weight: 500; }
+
+  /* App bar */
+  .mf-navbar {
+    min-height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    padding: 0 4px 16px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--mf-border);
+  }
+  .mf-brand { display: flex; align-items: center; gap: 12px; }
+  .mf-mark {
+    width: 40px; height: 40px; border-radius: 12px;
+    display: grid; place-items: center;
+    color: white; font-size: 22px; line-height: 1;
+    background: linear-gradient(145deg, #7252E9, #4F24EE);
+    box-shadow: var(--mf-shadow-2);
+  }
+  .mf-brand-name {
+    font-size: 16px; line-height: 24px; font-weight: 500;
+    letter-spacing: -0.01em;
+  }
+  .mf-brand-meta {
+    font-size: 12px; line-height: 16px; color: var(--mf-muted);
+  }
+  .mf-nav-status {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 7px 12px; border-radius: 999px;
+    background: #E3FCF1; color: #388E3C;
+    font-size: 12px; line-height: 16px; font-weight: 500;
+  }
+  .mf-nav-status::before {
+    content: ''; width: 7px; height: 7px; border-radius: 50%;
+    background: #4CAF50;
+  }
+
+  /* Workflow */
+  .stepper {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin: 0 0 24px;
+    padding: 8px;
+    border: 1px solid var(--mf-border);
+    border-radius: 16px;
+    background: rgba(255,255,255,.82);
+    box-shadow: var(--mf-shadow-2);
+    backdrop-filter: blur(12px);
+  }
+  .step {
+    position: relative;
+    min-height: 68px;
+    padding: 10px 12px 10px 44px;
+    border-radius: 12px;
+    font-size: 14px;
+    line-height: 20px;
+    transition: all .2s ease;
+  }
+  .step .n {
+    position: absolute; left: 12px; top: 12px;
+    width: 24px; height: 24px; border-radius: 50%;
+    display: grid; place-items: center;
+    background: #F2F2F2; color: #737378;
+    font-size: 12px; line-height: 16px; font-weight: 500;
+  }
+  .step .t { font-weight: 500; color: #49494B; }
+  .step .s { color: #8A8A8E; font-size: 12px; line-height: 16px; }
+  .step.done { background: #F1FDF8; }
+  .step.done .n { background: #E3FCF1; color: #388E3C; }
+  .step.active { background: #F0ECFE; }
+  .step.active .n {
+    background: var(--mf-plum); color: #fff;
+    box-shadow: 0 2px 7px rgba(79,36,238,.28);
+  }
+  .step.active .t { color: var(--mf-plum); }
+
+  /* Hero */
+  .mf-hero {
+    position: relative;
+    overflow: hidden;
+    min-height: 220px;
+    display: flex;
+    align-items: flex-end;
+    padding: 40px;
+    margin-bottom: 24px;
+    border: 1px solid rgba(255,255,255,.78);
+    border-radius: 24px;
+    background: linear-gradient(101deg, #CFE8FC 0%, #ECF4FE 16%, #F7F6FE 52%, #FAF6FD 87%, #FFF3F6 100%);
+    box-shadow: var(--mf-shadow-4);
+  }
+  .mf-hero::after {
+    content: '';
+    position: absolute; width: 240px; height: 240px;
+    right: -54px; top: -86px; border-radius: 50%;
+    border: 46px solid rgba(79,36,238,.10);
+    box-shadow: 0 0 0 28px rgba(15,140,240,.07);
+  }
+  .mf-hero-content { position: relative; z-index: 1; max-width: 760px; }
+  .mf-eyebrow {
+    display: inline-flex; align-items: center; gap: 7px;
+    margin-bottom: 14px; padding: 4px 10px;
+    border-radius: 999px; background: rgba(255,255,255,.72);
+    color: var(--mf-plum); font-size: 12px; line-height: 16px;
+    font-weight: 500; backdrop-filter: blur(8px);
+  }
+  .mf-eyebrow::before { content: '✦'; font-size: 11px; }
+  .hero-title {
+    max-width: 720px;
+    margin-bottom: 8px;
+    color: #3C3C3E;
+    font-size: 40px;
+    line-height: 48px;
+    font-weight: 400;
+    letter-spacing: -0.04em;
+  }
+  .hero-sub {
+    max-width: 700px;
+    color: #5D5D60;
+    font-size: 16px;
+    line-height: 24px;
+    letter-spacing: -0.01em;
+  }
+
+  /* Native Streamlit controls */
+  div.stButton > button, div.stDownloadButton > button {
+    min-height: 48px;
+    padding: 0 24px;
+    border-radius: 12px;
+    border: 1px solid var(--mf-border-strong);
+    background: #fff;
+    color: var(--mf-text);
+    font-size: 16px;
+    line-height: 24px;
+    font-weight: 500;
+    box-shadow: none;
+    transition: all .2s ease;
+  }
+  div.stButton > button:hover, div.stDownloadButton > button:hover {
+    border-color: var(--mf-plum);
+    color: var(--mf-plum);
+    transform: translateY(-1px);
+    box-shadow: var(--mf-shadow-2);
+  }
+  div.stButton > button:active, div.stDownloadButton > button:active {
+    transform: scale(.98);
+  }
+  div.stButton > button[kind="primary"],
+  div.stDownloadButton > button[kind="primary"] {
+    border-color: var(--mf-plum);
+    background: var(--mf-plum);
+    color: #fff;
+  }
+  div.stButton > button[kind="primary"]:hover,
+  div.stDownloadButton > button[kind="primary"]:hover {
+    border-color: var(--mf-plum-dark);
+    background: var(--mf-plum-dark);
+    color: #fff;
+  }
+  [data-testid="stTextInput"] input,
+  [data-testid="stTextArea"] textarea,
+  [data-baseweb="select"] > div {
+    border: 1px solid var(--mf-border) !important;
+    border-radius: 12px !important;
+    background: #F7F7F7 !important;
+    color: var(--mf-text) !important;
+    box-shadow: none !important;
+  }
+  [data-testid="stTextInput"] input { min-height: 48px; }
+  [data-testid="stTextInput"] input:focus,
+  [data-testid="stTextArea"] textarea:focus {
+    border-color: var(--mf-plum) !important;
+    background: #fff !important;
+    box-shadow: 0 0 0 3px rgba(79,36,238,.10) !important;
+  }
+  [data-testid="stFileUploader"] {
+    padding: 8px;
+    border: 1px solid var(--mf-border);
+    border-radius: 16px;
+    background: #fff;
+    box-shadow: var(--mf-shadow-2);
+  }
+  [data-testid="stFileUploaderDropzone"] {
+    min-height: 148px;
+    border: 1px dashed #A892F7;
+    border-radius: 12px;
+    background: var(--mf-plum-soft);
+  }
+  [data-testid="stFileUploaderDropzone"] button {
+    border-radius: 12px; border-color: var(--mf-plum);
+    color: var(--mf-plum); background: #fff;
+  }
+  [data-testid="stMetric"] {
+    min-height: 108px;
+    padding: 20px;
+    border: 1px solid var(--mf-border);
+    border-radius: 16px;
+    background: #fff;
+    box-shadow: var(--mf-shadow-2);
+  }
+  [data-testid="stMetricLabel"] { color: var(--mf-muted); }
+  [data-testid="stMetricValue"] {
+    color: var(--mf-text);
+    font-weight: 400;
+    letter-spacing: -0.04em;
+  }
+  [data-testid="stAlert"] {
+    border-radius: 12px;
+    border-width: 1px;
+    box-shadow: none;
+  }
+  [data-testid="stExpander"] {
+    border: 1px solid var(--mf-border);
+    border-radius: 12px;
+    background: #fff;
+    overflow: hidden;
+  }
+  [data-testid="stDataFrame"] {
+    border: 1px solid var(--mf-border);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: var(--mf-shadow-2);
+  }
+  [data-testid="stTabs"] [data-baseweb="tab-list"] {
+    gap: 6px;
+    padding: 5px;
+    border-radius: 12px;
+    background: #F2F2F2;
+  }
+  [data-testid="stTabs"] button[role="tab"] {
+    height: 38px;
+    padding: 0 18px;
+    border-radius: 8px;
+    color: #737378;
+  }
+  [data-testid="stTabs"] button[aria-selected="true"] {
+    color: var(--mf-plum);
+    background: #fff;
+    box-shadow: var(--mf-shadow-2);
+  }
+  [data-testid="stTabs"] [data-baseweb="tab-highlight"] { display: none; }
+
+  /* Sidebar / navrail */
+  [data-testid="stSidebar"] {
+    border-right: 1px solid var(--mf-border);
+    background: #fff;
+  }
+  [data-testid="stSidebar"] [data-testid="stSidebarContent"] {
+    padding-top: 20px;
+  }
+  [data-testid="stSidebar"] h3 {
+    margin-top: 8px;
+    font-size: 20px;
+    line-height: 28px;
+  }
+  [data-testid="stSidebar"] hr { border-color: var(--mf-border); }
+  [data-testid="stSidebar"] div.stButton > button { min-height: 40px; font-size: 14px; }
+  .mf-sidebar-kicker {
+    color: var(--mf-plum);
+    font-size: 12px;
+    line-height: 16px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: .0071em;
+  }
+
+  /* Content cards */
   .report-shell {
-    border: 1px solid rgba(128,128,128,0.22); border-radius: 12px;
-    padding: 1.6rem 2rem; margin-top: 0.6rem;
+    border: 1px solid var(--mf-border);
+    border-radius: 24px;
+    padding: 40px;
+    margin-top: 16px;
+    background: #fff;
+    box-shadow: var(--mf-shadow-4);
   }
   .report-shell h2 {
-    font-size: 1.28rem; margin: 1.7rem 0 0.6rem 0;
-    padding-bottom: 0.3rem; border-bottom: 2px solid #356854;
+    margin: 48px 0 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--mf-border);
+    font-size: 24px;
+    line-height: 32px;
   }
   .report-shell h2:first-child { margin-top: 0; }
-  .cover-title { font-size: 1.75rem; font-weight: 700; line-height: 1.2; }
-  .cover-sub { font-size: 1.15rem; opacity: 0.75; margin-bottom: 0.7rem; }
-  .cover-meta { font-size: 0.86rem; opacity: 0.7; line-height: 1.6; }
+  .cover-title {
+    font-size: 36px; line-height: 44px; font-weight: 400;
+    letter-spacing: -0.04em;
+  }
+  .cover-sub {
+    margin: 4px 0 20px;
+    color: var(--mf-plum);
+    font-size: 20px; line-height: 28px;
+  }
+  .cover-meta {
+    padding: 16px;
+    border-radius: 12px;
+    background: var(--mf-blue-soft);
+    color: #5D5D60;
+    font-size: 14px; line-height: 24px;
+  }
   .agent-card {
-    border: 1px solid rgba(128,128,128,0.22); border-radius: 10px;
-    padding: 0.9rem 1.1rem; height: 100%;
+    position: relative;
+    height: 100%;
+    overflow: hidden;
+    padding: 20px;
+    border: 1px solid var(--mf-border);
+    border-radius: 16px;
+    background: #fff;
+    box-shadow: var(--mf-shadow-2);
+    transition: all .2s ease;
   }
-  .agent-card .lbl { font-size: 0.7rem; letter-spacing: .07em; opacity: 0.55; font-weight: 700; }
-  .agent-card .nm { font-weight: 650; margin: 0.15rem 0 0.3rem 0; }
-  .agent-card .ds { font-size: 0.8rem; opacity: 0.72; line-height: 1.4; }
+  .agent-card:hover {
+    transform: translateY(-2px) scale(1.01);
+    box-shadow: var(--mf-shadow-4);
+  }
+  .agent-card::before {
+    content: ''; position: absolute; inset: 0 auto 0 0; width: 3px;
+    background: var(--mf-plum);
+  }
+  .agent-card .lbl {
+    color: #8A8A8E;
+    font-size: 12px; line-height: 16px;
+    letter-spacing: .0071em; font-weight: 500;
+  }
+  .agent-card .nm {
+    margin: 12px 0 6px;
+    font-size: 16px; line-height: 24px; font-weight: 500;
+  }
+  .agent-card .ds {
+    color: #737378;
+    font-size: 14px; line-height: 20px;
+  }
   .badge {
-    display: inline-block; padding: 0.1rem 0.5rem; border-radius: 999px;
-    font-size: 0.7rem; font-weight: 600;
+    display: inline-flex;
+    margin-left: 6px;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 12px; line-height: 16px; font-weight: 500;
   }
-  .badge.ai { background: rgba(66,133,244,0.18); color: #4285F4; }
-  .badge.calc { background: rgba(53,104,84,0.2); color: #2e8b6a; }
+  .badge.ai { background: #F0ECFE; color: var(--mf-plum); }
+  .badge.calc { background: #E3FCF1; color: #388E3C; }
+
+  @media (max-width: 900px) {
+    .block-container { padding: 1rem 1rem 3rem; }
+    .stepper { grid-template-columns: repeat(2, 1fr); }
+    .mf-hero { min-height: 200px; padding: 28px 24px; }
+    .hero-title { font-size: 36px; line-height: 44px; }
+    .report-shell { padding: 24px; }
+  }
+  @media (max-width: 560px) {
+    .mf-navbar { align-items: flex-start; }
+    .mf-nav-status { display: none; }
+    .stepper { grid-template-columns: 1fr; }
+    .step { min-height: 58px; }
+    .mf-hero { min-height: 230px; }
+    .hero-title { font-size: 32px; line-height: 40px; }
+  }
 </style>
 """
 
@@ -135,6 +501,8 @@ def make_client(api_key: str, model: str) -> GeminiClient | None:
 
 def sidebar() -> tuple[GeminiClient | None, str, bool]:
     with st.sidebar:
+        st.markdown("<div class='mf-sidebar-kicker'>Workspace controls</div>",
+                    unsafe_allow_html=True)
         st.markdown('### Gemini')
 
         env_key = os.environ.get('GEMINI_API_KEY', '')
@@ -195,9 +563,34 @@ def stepper():
     for i, (name, sub) in enumerate(STEPS, start=1):
         cls = 'done' if i < current else ('active' if i == current else '')
         cells.append(
-            f"<div class='step {cls}'><div class='n'>STEP {i}</div>"
+            f"<div class='step {cls}'><div class='n'>{'✓' if i < current else i}</div>"
             f"<div class='t'>{name}</div><div class='s'>{sub}</div></div>")
     st.markdown(f"<div class='stepper'>{''.join(cells)}</div>", unsafe_allow_html=True)
+
+
+def app_header():
+    st.markdown(
+        "<div class='mf-navbar'>"
+        "<div class='mf-brand'>"
+        "<div class='mf-mark'>✦</div>"
+        "<div><div class='mf-brand-name'>Path to Conversion Copilot</div>"
+        "<div class='mf-brand-meta'>Campaign intelligence workspace</div></div>"
+        "</div>"
+        "<div class='mf-nav-status'>Analysis engine ready</div>"
+        "</div>",
+        unsafe_allow_html=True,
+    )
+
+
+def page_hero(eyebrow: str, title: str, subtitle: str):
+    st.markdown(
+        "<section class='mf-hero'><div class='mf-hero-content'>"
+        f"<div class='mf-eyebrow'>{escape(eyebrow)}</div>"
+        f"<div class='hero-title'>{escape(title)}</div>"
+        f"<div class='hero-sub'>{escape(subtitle)}</div>"
+        "</div></section>",
+        unsafe_allow_html=True,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -213,11 +606,12 @@ def save_upload(uploaded) -> str:
 
 
 def step_upload():
-    st.markdown("<div class='hero-title'>Path to Conversion Copilot</div>"
-                "<div class='hero-sub'>Upload a Campaign Manager 360 path-to-conversion "
-                "export. Two Gemini agents and a deterministic analysis between them "
-                "turn it into a written report.</div>",
-                unsafe_allow_html=True)
+    page_hero(
+        'CM360 intelligence',
+        'Turn every conversion path into a clear next move.',
+        'Upload a Campaign Manager 360 export. Two Gemini agents and a '
+        'deterministic analysis transform it into a polished, evidence-led report.',
+    )
 
     left, right = st.columns([3, 2], gap='large')
 
@@ -320,10 +714,12 @@ Vocabulary the client uses for their channels and audiences.
 
 
 def step_context():
-    st.markdown("<div class='hero-title'>Context for the narrative</div>"
-                "<div class='hero-sub'>Whatever you write here is given to the narrative "
-                "agent as background. It shapes the framing and vocabulary; it can never "
-                "change a number.</div>", unsafe_allow_html=True)
+    page_hero(
+        'Narrative intelligence',
+        'Give the analysis a sharper point of view.',
+        'Add the business context behind the campaign. It shapes framing and '
+        'vocabulary while every reported number remains locked to the source data.',
+    )
 
     left, right = st.columns([3, 2], gap='large')
 
@@ -410,10 +806,12 @@ def taxonomy_editor(mapping) -> rc.Taxonomy:
 def step_generate(client: GeminiClient | None, style: str, rewrite: bool):
     info = st.session_state['info']
 
-    st.markdown("<div class='hero-title'>Generate the report</div>"
-                "<div class='hero-sub'>The mapping agent proposes the taxonomy, you "
-                "approve it, then the analysis computes the numbers and the narrative "
-                "agent writes them up.</div>", unsafe_allow_html=True)
+    page_hero(
+        'Human-guided AI',
+        'Map, validate, and build with confidence.',
+        'Review the proposed taxonomy before deterministic analysis computes the '
+        'metrics and the narrative agent turns the evidence into a client-ready story.',
+    )
 
     # -- Stage 1: mapping ---------------------------------------------------
     if st.session_state['mapping'] is None:
@@ -572,11 +970,15 @@ def step_report():
     spec = run.spec
     m = run.metrics
 
+    page_hero(
+        'Report complete',
+        f'{spec.client_name} · intelligence ready',
+        spec.subtitle,
+    )
+
     head, actions = st.columns([3, 1], gap='large')
     with head:
-        st.markdown(f"<div class='hero-title'>{spec.client_name} · report ready</div>"
-                    f"<div class='hero-sub'>{spec.subtitle}</div>",
-                    unsafe_allow_html=True)
+        st.caption('Verified analysis · AI-assisted narrative · Export-ready document')
     with actions:
         with open(run.docx_path, 'rb') as f:
             st.download_button(
@@ -675,6 +1077,7 @@ def main():
     init_state()
     st.markdown(STYLE_CSS, unsafe_allow_html=True)
     client, style, rewrite = sidebar()
+    app_header()
     stepper()
 
     step = st.session_state['step']

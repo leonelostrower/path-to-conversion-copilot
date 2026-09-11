@@ -666,15 +666,17 @@ STYLESHEET = """
     letter-spacing: -0.01em;
   }
 
-  /* Provider pills: five vendors without five stacked buttons */
+  /* Provider pills: a grid, so every vendor gets the same footprint */
   [data-testid="stButtonGroup"] {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 6px;
   }
   [data-testid="stButtonGroup"] button {
+    width: 100%;
     min-height: 30px;
-    padding: 0 12px;
+    padding: 0 10px;
+    justify-content: center;
     border: 1px solid var(--line);
     border-radius: 999px;
     background: var(--surface);
@@ -748,11 +750,11 @@ STYLESHEET = """
 
   /* ------------------------------------------------- short viewports */
   @media (max-height: 860px) {
-    .mf-hero { margin: 4px 0 2px; padding: 28px 28px 30px; }
-    .mf-eyebrow { margin-bottom: 12px; }
-    .hero-title { font-size: 26px; line-height: 32px; margin-bottom: 10px; }
+    .mf-hero { margin: 6px 0 4px; padding: 34px 28px 36px; }
+    .mf-eyebrow { margin-bottom: 15px; }
+    .hero-title { font-size: 26px; line-height: 32px; margin-bottom: 12px; }
     .hero-sub { font-size: 13px; line-height: 19px; }
-    .mf-stage { min-height: 196px; }
+    .mf-stage { min-height: 178px; }
     .report-shell { padding: 22px 24px; }
   }
   @media (max-height: 720px) {

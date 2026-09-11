@@ -82,22 +82,27 @@ STYLE_CSS = """
 
   /* Viewport-locked shell: the page itself never scrolls. */
   html, body { overflow: hidden !important; }
-  [data-testid="stAppViewContainer"],
-  [data-testid="stMain"] {
+  [data-testid="stAppViewContainer"] {
     max-height: 100dvh;
     overflow: hidden !important;
   }
+  [data-testid="stMain"] { overflow: hidden !important; }
+  /* The toolbar stays: it hosts the button that reopens the settings rail. */
   [data-testid="stHeader"] {
-    height: 2.5rem;
-    min-height: 2.5rem;
+    position: relative !important;
+    height: 3rem;
+    min-height: 3rem;
     background: transparent;
+    z-index: 60;
   }
-  [data-testid="stToolbar"] { display: none; }
-  #MainMenu, footer { visibility: hidden; }
+  [data-testid="stToolbarActions"],
+  [data-testid="stAppDeployButton"],
+  [data-testid="stMainMenu"],
+  footer { display: none !important; }
   .block-container {
-    height: calc(100dvh - 2.5rem);
+    height: calc(100dvh - 3rem);
     max-width: 1160px;
-    padding: 0.35rem 2.25rem 0.75rem;
+    padding: 0.15rem 2.25rem 0.75rem;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -106,7 +111,7 @@ STYLE_CSS = """
   .block-container > [data-testid="stVerticalBlock"] {
     flex: 1;
     min-height: 0;
-    gap: 0.55rem;
+    gap: 0.9rem;
     overflow-y: auto;
     overscroll-behavior: contain;
     scrollbar-width: thin;
@@ -427,21 +432,44 @@ STYLE_CSS = """
     letter-spacing: .0071em;
   }
 
-  /* Open / close control for the settings rail */
-  [data-testid="stSidebarCollapseButton"] button,
-  [data-testid="stExpandSidebarButton"] button,
-  [data-testid="collapsedControl"] button {
-    width: 36px;
-    height: 36px;
+  /* Open control: lives in the toolbar, so it gets a label to be findable. */
+  button[data-testid="stExpandSidebarButton"] {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 6px;
+    height: 34px;
+    padding: 0 12px !important;
     border: 1px solid var(--mf-border-strong) !important;
     border-radius: 10px !important;
     background: #fff !important;
     color: var(--mf-plum) !important;
     box-shadow: var(--mf-shadow-2) !important;
   }
-  [data-testid="stSidebarCollapseButton"] button:hover,
-  [data-testid="stExpandSidebarButton"] button:hover,
-  [data-testid="collapsedControl"] button:hover {
+  button[data-testid="stExpandSidebarButton"]::after {
+    content: 'Settings';
+    color: var(--mf-text);
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+  }
+  button[data-testid="stExpandSidebarButton"]:hover {
+    border-color: var(--mf-plum) !important;
+    background: var(--mf-plum-soft) !important;
+  }
+  /* Close control: Streamlit reveals it on hover, we keep it always visible. */
+  [data-testid="stSidebarCollapseButton"] {
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+  [data-testid="stSidebarCollapseButton"] button {
+    width: 32px;
+    height: 32px;
+    border: 1px solid var(--mf-border-strong) !important;
+    border-radius: 9px !important;
+    background: #fff !important;
+    color: var(--mf-plum) !important;
+  }
+  [data-testid="stSidebarCollapseButton"] button:hover {
     border-color: var(--mf-plum) !important;
     background: var(--mf-plum-soft) !important;
   }
@@ -513,6 +541,54 @@ STYLE_CSS = """
   }
   .mf-provider.is-active .mf-provider-tag {
     background: var(--mf-plum); color: #fff;
+  }
+
+  /* Breathing room: compact must not read as cramped. */
+  .block-container h4 {
+    margin: 4px 0 2px;
+    font-size: 15px;
+    line-height: 22px;
+  }
+  [data-testid="stCaptionContainer"] p {
+    margin-bottom: 0;
+    line-height: 18px;
+  }
+  [data-testid="stColumn"] [data-testid="stVerticalBlock"] { gap: 0.7rem; }
+  .agent-card { margin-bottom: 2px; }
+  [data-testid="stSidebar"] [data-testid="stVerticalBlock"] { gap: 0.6rem; }
+  [data-testid="stWidgetLabel"] { margin-bottom: 2px; }
+  input::placeholder, textarea::placeholder {
+    color: #A1A1A5 !important;
+    opacity: 1 !important;
+  }
+  textarea::placeholder { line-height: 20px; }
+
+  /* Detected-export summary */
+  .mf-detail {
+    padding: 4px 14px;
+    border: 1px solid var(--mf-border);
+    border-radius: 14px;
+    background: #fff;
+    box-shadow: var(--mf-shadow-2);
+  }
+  .mf-detail-row {
+    padding: 9px 0;
+    border-bottom: 1px solid var(--mf-border);
+  }
+  .mf-detail-row:last-child { border-bottom: none; }
+  .mf-detail-key {
+    margin-bottom: 2px;
+    color: #8A8A8E;
+    font-size: 11px;
+    line-height: 15px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: .0071em;
+  }
+  .mf-detail-val {
+    color: var(--mf-text);
+    font-size: 13px;
+    line-height: 18px;
   }
 
   /* Compact page header used where a hero would waste height */
@@ -845,10 +921,12 @@ def step_upload():
         st.markdown('#### 2. The client')
         client_name = st.text_input(
             'Client name', value=st.session_state['client_name'],
-            placeholder='e.g. Rates.ca',
+            placeholder='Rates.ca',
             help='Used on the cover page and throughout the narrative.')
-        subtitle = st.text_input('Report subtitle', value=st.session_state['subtitle'],
-                                 placeholder='e.g. 2026 Q3: Quarterly Business Review')
+        subtitle = st.text_input(
+            'Report subtitle', value=st.session_state['subtitle'],
+            placeholder='2026 Q3 · Quarterly Business Review',
+            help='Sits under the title on the cover page.')
         if client_name != st.session_state['client_name']:
             st.session_state['client_name'] = client_name
         st.session_state['subtitle'] = subtitle
@@ -879,12 +957,20 @@ def step_upload():
             c1, c2 = st.columns(2)
             c1.metric('Conversion rows', f"{info.n_rows:,}")
             c2.metric('Interaction slots', info.n_slots)
-            st.caption(f"**Activity**  \n{info.activity}")
-            st.caption(f"**Date range**  \n{info.date_min:%b %d, %Y} to "
-                       f"{info.date_max:%b %d, %Y}")
-            st.caption(f"**Campaigns ({len(info.campaigns)})**  \n"
-                       + ', '.join(info.campaigns))
-            st.caption(f"**Sites ({len(info.sites)})**  \n" + ', '.join(info.sites))
+            detail_rows = [
+                ('Activity', info.activity),
+                ('Date range', f"{info.date_min:%b %d, %Y} — {info.date_max:%b %d, %Y}"),
+                (f'Campaigns ({len(info.campaigns)})', ', '.join(info.campaigns)),
+                (f'Sites ({len(info.sites)})', ', '.join(info.sites)),
+            ]
+            st.markdown(
+                "<div class='mf-detail'>"
+                + ''.join(f"<div class='mf-detail-row'>"
+                          f"<div class='mf-detail-key'>{escape(key)}</div>"
+                          f"<div class='mf-detail-val'>{escape(str(value))}</div></div>"
+                          for key, value in detail_rows)
+                + "</div>",
+                unsafe_allow_html=True)
 
     info = st.session_state['info']
     if info is not None:
@@ -910,10 +996,10 @@ def step_upload():
 # ---------------------------------------------------------------------------
 
 CONTEXT_PLACEHOLDER = """\
-What the client does, who they sell to, and what this campaign was trying to achieve.
+What the client sells, and to whom.
 The business question this report should answer.
-Anything unusual in the period: platform launches or pauses, budget shifts, seasonality.
-Vocabulary the client uses for their channels and audiences.
+Anything unusual in the period: launches, pauses, budget shifts.
+The words the client uses for their channels and audiences.
 """
 
 

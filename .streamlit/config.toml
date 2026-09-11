@@ -1,0 +1,58 @@
+# Monks Flow 2.0 tokens applied at the framework level, so native widgets and
+# the dataframe grid share the app's typeface, radii and palette.
+#
+# Plum is the only accent. The semantic slots Streamlit uses for st.success,
+# st.info and st.warning are mapped onto the plum family on purpose; ruby is
+# left for st.error alone, so a real failure is the only coloured exception.
+
+[theme]
+base = "light"
+
+font = "'Helvetica Now for Monks', 'Helvetica Neue', Helvetica, Arial, sans-serif"
+headingFont = "'Helvetica Now for Monks', 'Helvetica Neue', Helvetica, Arial, sans-serif"
+baseFontSize = 14
+
+primaryColor = "#4F24EE"
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F4F4F6"
+textColor = "#3C3C3E"
+linkColor = "#4F24EE"
+
+baseRadius = "12px"
+buttonRadius = "12px"
+borderColor = "rgba(0, 0, 0, 0.10)"
+dataframeBorderColor = "rgba(0, 0, 0, 0.10)"
+dataframeHeaderBackgroundColor = "#F7F7F7"
+showWidgetBorder = true
+showSidebarBorder = true
+
+metricValueFontSize = "26px"
+metricValueFontWeight = 400
+
+# Single palette: everything informational reads as plum, errors as ruby.
+violetColor = "#4F24EE"
+violetBackgroundColor = "#F0ECFE"
+violetTextColor = "#3C3C3E"
+blueColor = "#4F24EE"
+blueBackgroundColor = "#F7F6FE"
+blueTextColor = "#3C3C3E"
+greenColor = "#4F24EE"
+greenBackgroundColor = "#F7F6FE"
+greenTextColor = "#3C3C3E"
+orangeColor = "#7252E9"
+orangeBackgroundColor = "#F7F6FE"
+orangeTextColor = "#3C3C3E"
+yellowColor = "#7252E9"
+yellowBackgroundColor = "#F7F6FE"
+yellowTextColor = "#3C3C3E"
+grayColor = "#737378"
+grayBackgroundColor = "#F4F4F6"
+grayTextColor = "#3C3C3E"
+redColor = "#FF245B"
+redBackgroundColor = "#FFF3F6"
+redTextColor = "#3C3C3E"
+
+chartCategoricalColors = [
+  "#4F24EE", "#7252E9", "#A892F7", "#3B11D5",
+  "#BFAFF9", "#2A0C97", "#D2C6FB", "#52566A",
+]

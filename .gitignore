@@ -1,0 +1,11 @@
+.env
+.venv/
+.bootstrap/
+.pythons/
+.uv-cache/
+.mplcache/
+.pagecheck/
+__pycache__/
+*.pyc
+output/
+*.csv

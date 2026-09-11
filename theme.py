@@ -645,14 +645,15 @@ STYLESHEET = """
     border-right: 1px solid var(--line);
     background: var(--surface);
   }
-  [data-testid="stSidebar"] [data-testid="stSidebarContent"] { padding-top: 14px; }
-  [data-testid="stSidebar"] [data-testid="stVerticalBlock"] { gap: 9px; }
+  [data-testid="stSidebar"] [data-testid="stSidebarContent"] { padding-top: 16px; }
+  [data-testid="stSidebar"] [data-testid="stVerticalBlock"] { gap: 13px; }
+  [data-testid="stSidebar"] [data-testid="stWidgetLabel"] { margin-bottom: 7px; }
   [data-testid="stSidebar"] div.stButton > button {
-    min-height: 44px;
+    min-height: 40px;
     padding: 0 14px;
     border-color: var(--line);
     border-radius: var(--r-md);
-    justify-content: flex-start;
+    justify-content: center;
     font-size: 13px;
   }
   [data-testid="stSidebar"] div.stButton > button p {
@@ -660,10 +661,12 @@ STYLESHEET = """
     font-weight: 500;
   }
   .mf-rail-title {
-    margin-bottom: 2px;
+    margin: 0 0 6px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--line);
     color: var(--ink);
-    font-size: 15px; line-height: 22px; font-weight: 500;
-    letter-spacing: -0.01em;
+    font-size: 17px; line-height: 24px; font-weight: 500;
+    letter-spacing: -0.02em;
   }
 
   /* Provider pills: a grid, so every vendor gets the same footprint */

@@ -672,11 +672,19 @@ STYLESHEET = """
     letter-spacing: -0.02em;
   }
 
-  /* Provider pills: one row of five, every vendor the same footprint */
-  [data-testid="stButtonGroup"] {
+  /* The label is the section title, so it keeps its own line above the pills */
+  [data-testid="stButtonGroup"] { display: block; }
+  [data-testid="stButtonGroup"] > [data-testid="stWidgetLabel"] {
+    display: block;
+    margin: 0 0 8px;
+  }
+  /* Whatever wraps the pills becomes one even row of five */
+  [data-testid="stButtonGroup"] > div:has(> button),
+  [data-testid="stButtonGroup"] [data-baseweb="button-group"] {
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 5px;
+    width: 100%;
   }
   [data-testid="stButtonGroup"] button {
     width: 100%;

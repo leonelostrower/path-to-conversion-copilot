@@ -641,13 +641,33 @@ STYLESHEET = """
   .report-shell h2:first-child { margin-top: 0; }
 
   /* -------------------------------------------------------- settings rail */
-  /* Wide enough that the five provider pills sit on one line */
+  /* A drawer: it floats over the page instead of taking a column from it,
+     and it leaves nothing behind when closed. */
   [data-testid="stSidebar"] {
-    width: 340px !important;
-    min-width: 340px !important;
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    height: 100dvh !important;
+    width: min(340px, 86vw) !important;
+    min-width: min(340px, 86vw) !important;
+    max-width: min(340px, 86vw) !important;
+    z-index: 100;
     border-right: 1px solid var(--line);
     background: var(--surface);
+    box-shadow: var(--shadow-4);
+    transform: translateX(0);
+    transition: transform .22s ease;
   }
+  [data-testid="stSidebar"][aria-expanded="false"] {
+    transform: translateX(-102%) !important;
+    box-shadow: none;
+  }
+  [data-testid="stSidebar"] [data-testid="stSidebarContent"] {
+    height: 100dvh;
+    overflow-y: auto;
+  }
+  /* With the drawer out of the flow, the page always uses the full window. */
+  [data-testid="stMain"] { width: 100% !important; }
   [data-testid="stSidebar"] [data-testid="stSidebarContent"] { padding-top: 16px; }
   [data-testid="stSidebar"] [data-testid="stVerticalBlock"] { gap: 13px; }
   [data-testid="stSidebar"] [data-testid="stWidgetLabel"] { margin-bottom: 7px; }
@@ -788,9 +808,14 @@ STYLESHEET = """
     [data-testid="stMetricValue"] { font-size: 21px; }
   }
 
+  @media (max-width: 1180px) {
+    .block-container { padding: 0 24px 14px; }
+    .mf-hero { padding-left: 24px; padding-right: 24px; }
+  }
   @media (max-width: 900px) {
     .block-container { padding: 0 16px 12px; }
     .stepper { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .mf-stage { min-height: 0; }
   }
 </style>
 """.replace('__FONT_STACK__', FONT_STACK)

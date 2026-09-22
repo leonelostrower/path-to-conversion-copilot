@@ -564,30 +564,51 @@ STYLESHEET = """
     display: flex;
     flex-direction: column;
   }
-  [data-testid="stTabs"] [data-baseweb="tab-list"] {
+  /* Streamlit nests the tab list and the panels in a plain div. Without it in
+     the flex chain the panel cannot be sized, and the report scrolls the whole
+     page instead of itself. */
+  [data-testid="stTabs"] > div:has([data-testid="stTabPanel"]) {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  [data-testid="stTabs"] [role="tablist"] {
     flex: 0 0 auto;
+    align-self: center;
+    width: fit-content;
     justify-content: center;
     gap: 6px;
-    margin: 0 auto;
     padding: 4px;
+    border: none;
     border-radius: var(--r-md);
     background: var(--grey-100);
   }
-  [data-testid="stTabs"] button[role="tab"] {
+  /* The tabs are divs, not buttons, so they carry their own box entirely. */
+  [data-testid="stTab"] {
     height: 34px;
     padding: 0 20px;
+    align-items: center;
+    justify-content: center;
+    border: none;
     border-radius: var(--r-sm);
     color: var(--muted);
-    font-size: 13px; font-weight: 500;
+    cursor: pointer;
   }
-  [data-testid="stTabs"] button[aria-selected="true"] {
+  [data-testid="stTab"] p {
+    color: inherit;
+    font-size: 13px !important;
+    font-weight: 500;
+  }
+  [data-testid="stTab"]:hover { color: var(--plum); }
+  [data-testid="stTab"][aria-selected="true"] {
     background: var(--surface);
     color: var(--plum);
     box-shadow: var(--shadow-2);
   }
-  [data-testid="stTabs"] [data-baseweb="tab-highlight"],
-  [data-testid="stTabs"] [data-baseweb="tab-border"] { display: none; }
-  [data-testid="stTabs"] [data-baseweb="tab-panel"] {
+  /* The pill is the selected state; the default underline would double it up. */
+  [data-testid="stTab"] .react-aria-SelectionIndicator { display: none; }
+  [data-testid="stTabPanel"] {
     flex: 1;
     min-height: 0;
     overflow-y: auto;
@@ -596,14 +617,14 @@ STYLESHEET = """
     scrollbar-width: thin;
     scrollbar-color: var(--grey-200) transparent;
   }
-  [data-testid="stTabs"] [data-baseweb="tab-panel"]::-webkit-scrollbar { width: 6px; }
-  [data-testid="stTabs"] [data-baseweb="tab-panel"]::-webkit-scrollbar-thumb {
+  [data-testid="stTabPanel"]::-webkit-scrollbar { width: 6px; }
+  [data-testid="stTabPanel"]::-webkit-scrollbar-thumb {
     border-radius: 999px;
     background: var(--grey-200);
   }
 
   /* -------------------------------------------------------------- report */
-  .report-shell {
+  .st-key-report_shell {
     padding: 30px 34px;
     border: 1px solid var(--line);
     border-radius: var(--r-xl);
@@ -631,14 +652,14 @@ STYLESHEET = """
     font-size: 13px; line-height: 22px;
     text-align: left;
   }
-  .report-shell h2 {
+  .st-key-report_shell h2 {
     margin: 30px 0 12px;
     padding-bottom: 8px;
     border-bottom: 1px solid var(--line);
     color: var(--ink);
     font-size: 20px; line-height: 28px;
   }
-  .report-shell h2:first-child { margin-top: 0; }
+  .st-key-report_shell h2:first-child { margin-top: 0; }
 
   /* -------------------------------------------------------- settings rail */
   /* A drawer: it floats over the page instead of taking a column from it,
@@ -795,7 +816,7 @@ STYLESHEET = """
     .hero-title { font-size: 26px; line-height: 32px; margin-bottom: 12px; }
     .hero-sub { font-size: 13px; line-height: 19px; }
     .mf-stage { min-height: 178px; }
-    .report-shell { padding: 22px 24px; }
+    .st-key-report_shell { padding: 22px 24px; }
   }
   @media (max-height: 720px) {
     .mf-hero { margin: 0; padding: 20px 24px 22px; }

@@ -12,7 +12,7 @@ numbers stay exactly as the deterministic pipeline computed them: the agent may
 only replace the text of Prose and Bullets blocks, never a figure, a table cell,
 or a value in `facts`.
 
-Renderers (docx_builder, the Streamlit report view) consume a ReportSpec.
+Renderers (pdf_builder, the Streamlit report view) consume a ReportSpec.
 """
 
 from __future__ import annotations
@@ -94,7 +94,7 @@ def parse_inline_bold(text: str) -> list[tuple[str, bool]]:
     """'**Lead-in**: rest' -> [('Lead-in', True), (': rest', False)].
 
     Narrative text is carried as markdown-lite so a single string round-trips
-    through the LLM and still renders with bold lead-ins in both Word and
+    through the LLM and still renders with bold lead-ins in both PDF and
     Streamlit.
     """
     segments: list[tuple[str, bool]] = []

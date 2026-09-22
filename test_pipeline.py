@@ -3,7 +3,7 @@
 import sys
 import time
 
-from docx import Document
+from pypdf import PdfReader
 
 import report_core as rc
 from agents import orchestrator
@@ -21,8 +21,20 @@ back into paid search. The team cares most about auto insurance leads.
 """
 
 
-def audit_docx(run) -> int:
-    """Re-read the finished .docx and confirm every number in its prose traces
+def _pdf_lines(path: str) -> list[str]:
+    reader = PdfReader(path)
+    lines = []
+    for page in reader.pages:
+        text = page.extract_text() or ''
+        for line in text.splitlines():
+            stripped = line.strip()
+            if stripped:
+                lines.append(stripped)
+    return lines
+
+
+def audit_pdf(run) -> int:
+    """Re-read the finished PDF and confirm every number in its prose traces
     back to the deterministic pipeline.
 
     This checks the artifact the client actually receives, rather than trusting
@@ -37,18 +49,27 @@ def audit_docx(run) -> int:
         s.heading: (wide if s.mode == 'generate' else allowed_numbers(s))
         for s in run.spec.sections}
 
-    doc = Document(run.docx_path)
     current = None
     checked = 0
     bad = 0
-
-    for para in doc.paragraphs:
-        text = para.text.strip()
-        if not text:
+    lines = _pdf_lines(run.pdf_path)
+    i = 0
+    # Headings can wrap across lines in the PDF, so match the longest join of
+    # consecutive lines that equals a section heading before treating text as prose.
+    while i < len(lines):
+        matched = None
+        max_span = min(4, len(lines) - i)
+        for span in range(max_span, 0, -1):
+            joined = ' '.join(lines[i:i + span])
+            if joined in allowed_by_heading:
+                matched = (joined, span)
+                break
+        if matched:
+            current, span = matched
+            i += span
             continue
-        if para.style.name.startswith('Heading'):
-            current = text if text in allowed_by_heading else current
-            continue
+        text = lines[i]
+        i += 1
         allowed = allowed_by_heading.get(current)
         if allowed is None:
             continue
@@ -58,7 +79,7 @@ def audit_docx(run) -> int:
             print(f'  UNVERIFIED in "{current}": {violations}')
             print(f'    {text[:160]}')
 
-    print(f'  checked {checked} prose paragraphs in the .docx, {bad} with unverified figures')
+    print(f'  checked {checked} prose lines in the PDF, {bad} with unverified figures')
     return bad
 
 
@@ -124,10 +145,10 @@ def main():
         for ev in rec.get('evidence') or []:
             print(f"      evidence: {ev}")
 
-    print('\n== Auditing the generated .docx ==')
-    bad = audit_docx(run)
+    print('\n== Auditing the generated PDF ==')
+    bad = audit_pdf(run)
 
-    print(f'\n== Output ==\n  docx: {run.docx_path}')
+    print(f'\n== Output ==\n  pdf: {run.pdf_path}')
     print(f'  charts: {len(run.analysis.charts)} in {run.analysis.charts_dir}')
     for w in run.warnings:
         print(f'  WARNING: {w}')

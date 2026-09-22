@@ -77,8 +77,8 @@ def main():
     print(f'  KPI metrics: {[(m.label, m.value) for m in at.metric]}')
     print(f'  tabs: {[t.label for t in at.tabs]}')
     print(f'  dataframes: {len(at.dataframe)}')
-    print(f'  docx: {os.path.basename(run.docx_path)} '
-          f'({os.path.getsize(run.docx_path):,} bytes)')
+    print(f'  pdf: {os.path.basename(run.pdf_path)} '
+          f'({os.path.getsize(run.pdf_path):,} bytes)')
 
     print('\nAll screens rendered without exceptions.')
 

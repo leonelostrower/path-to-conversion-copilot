@@ -22,7 +22,7 @@ from typing import Callable
 
 import pandas as pd
 
-from docx_builder import build_docx
+from pdf_builder import build_pdf
 from report_core import AnalysisResult, ExportInfo, Taxonomy, output_paths
 from report_spec import ReportSpec
 
@@ -41,7 +41,7 @@ class ReportRun:
     spec: ReportSpec
     analysis: AnalysisResult
     narrative: NarrativeResult
-    docx_path: str
+    pdf_path: str
     taxonomy: Taxonomy
     warnings: list[str] = field(default_factory=list)
 
@@ -71,7 +71,7 @@ def run_report(info: ExportInfo, tax: Taxonomy, client_name: str, subtitle: str,
                trim_rampup: bool = True,
                rewrite_narrative: bool = True,
                progress: Progress | None = None) -> ReportRun:
-    """Stages 2 and 3, plus the .docx render, against an approved taxonomy."""
+    """Stages 2 and 3, plus the PDF render, against an approved taxonomy."""
     say = progress or (lambda _s, _m: None)
 
     say('analysis', 'Running the deterministic pipeline')
@@ -97,10 +97,10 @@ def run_report(info: ExportInfo, tax: Taxonomy, client_name: str, subtitle: str,
         narrative = narrative_agent.run(spec, None)
         say('narrative', 'Narrative rewriting skipped; using the verified baseline')
 
-    say('narrative', 'Building the Word document')
-    _, docx_path = output_paths(analysis.metrics.date_min, analysis.metrics.date_max)
-    build_docx(spec, docx_path)
+    say('narrative', 'Building the PDF')
+    _, pdf_path = output_paths(analysis.metrics.date_min, analysis.metrics.date_max)
+    build_pdf(spec, pdf_path)
 
     return ReportRun(spec=spec, analysis=analysis, narrative=narrative,
-                     docx_path=docx_path, taxonomy=tax,
+                     pdf_path=pdf_path, taxonomy=tax,
                      warnings=list(analysis.warnings))

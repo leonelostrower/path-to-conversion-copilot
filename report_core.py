@@ -973,7 +973,7 @@ def output_paths(date_min, date_max, base_dir: str | None = None) -> tuple[str, 
     slug = f"{date_min:%Y%m%d}_{date_max:%Y%m%d}"
     charts_dir = os.path.join(base_dir, f"charts_{slug}")
     os.makedirs(charts_dir, exist_ok=True)
-    return charts_dir, os.path.join(base_dir, f"Path_to_Conversion_Report_{slug}.docx")
+    return charts_dir, os.path.join(base_dir, f"Path_to_Conversion_Report_{slug}.pdf")
 
 
 def run_analysis(csv_path: str, tax: Taxonomy, header_row: int = 0,

@@ -612,10 +612,10 @@ def step_report():
         goto(3)
         st.rerun()
     with right:
-        with open(run.docx_path, 'rb') as f:
+        with open(run.pdf_path, 'rb') as f:
             st.download_button(
-                'Download .docx', f.read(), file_name=os.path.basename(run.docx_path),
-                mime='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                'Download PDF', f.read(), file_name=os.path.basename(run.pdf_path),
+                mime='application/pdf',
                 type='primary', width='stretch')
 
     for warning in run.warnings:
@@ -624,17 +624,18 @@ def step_report():
     tab_report, tab_charts, tab_audit = st.tabs(['Report', 'Charts', 'Audit'])
 
     with tab_report:
-        st.markdown("<div class='report-shell'>", unsafe_allow_html=True)
-        st.markdown("<div class='report-cover'>"
-                    f"<div class='cover-title'>{escape(spec.title)}</div>"
-                    f"<div class='cover-sub'>{escape(spec.subtitle)}</div>"
-                    "<div class='cover-meta'>"
-                    + '<br>'.join(escape(line) for line in spec.cover_lines)
-                    + "</div></div>",
-                    unsafe_allow_html=True)
-        for section in spec.sections:
-            render_section(section, show_baseline)
-        st.markdown('</div>', unsafe_allow_html=True)
+        # A real container, not a raw <div>: Streamlit closes stray markup, so a
+        # hand-written wrapper renders as an empty card with the report beside it.
+        with st.container(key='report_shell'):
+            st.markdown("<div class='report-cover'>"
+                        f"<div class='cover-title'>{escape(spec.title)}</div>"
+                        f"<div class='cover-sub'>{escape(spec.subtitle)}</div>"
+                        "<div class='cover-meta'>"
+                        + '<br>'.join(escape(line) for line in spec.cover_lines)
+                        + "</div></div>",
+                        unsafe_allow_html=True)
+            for section in spec.sections:
+                render_section(section, show_baseline)
 
     with tab_charts:
         figures = [(s.heading, fig) for s in spec.sections for fig in s.figures()]

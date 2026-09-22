@@ -474,10 +474,21 @@ def _kpis(m: Metrics) -> list[KPI]:
     ]
 
 
+# Demo cost control: the narrative agent makes one Gemini call per rewritten
+# section plus one to generate the conclusions, so trimming which sections make
+# it into the report is the lever that controls how many calls a run makes.
+# Set to None to keep the full report (all sections below, unfiltered).
+DEMO_SECTION_IDS: set[str] | None = None
+
+
 def build_spec(result: AnalysisResult, client_name: str, subtitle: str,
                context: str = '') -> ReportSpec:
     """Assemble the full report as data, mirroring the section order and wording
-    of the original deliverable."""
+    of the original deliverable.
+
+    If DEMO_SECTION_IDS is set, only those sections (plus Conclusions, which is
+    always kept) are carried through — fewer sections means fewer narrative-agent
+    Gemini calls, which is what this knob is for."""
     m = result.metrics
     charts = result.charts
     client = client_name.strip() or 'the client'
@@ -793,6 +804,9 @@ def build_spec(result: AnalysisResult, client_name: str, subtitle: str,
                    'Figure 8. Days between first mid-funnel touch and converting Search click.'),
         ],
     ))
+
+    if DEMO_SECTION_IDS is not None:
+        sections = [s for s in sections if s.id in DEMO_SECTION_IDS]
 
     # ---------------- Conclusions ----------------
     # Written by the narrative agent from the whole report rather than reworded

@@ -28,13 +28,14 @@ from google.genai import types
 # we never pass tools, so the warning is pure noise.
 logging.getLogger('google_genai.models').setLevel(logging.ERROR)
 
-# Verified as serving on this key. Ordered fastest-and-most-reliable first.
+# Verified as serving on this key. Ordered cheapest first (flash-lite is the
+# lowest-cost model in the chain) so a demo run burns as few tokens as possible;
+# the rest of the chain is the fallback if the cheap model is unavailable.
 MODEL_CHAIN = [
-    'gemini-3.5-flash',
-    'gemini-2.5-flash',
-    'gemini-3-flash-preview',
     'gemini-3.1-flash-lite',
     'gemini-3.6-flash',
+    'gemini-3.5-flash',
+    'gemini-3-flash-preview',
 ]
 DEFAULT_MODEL = MODEL_CHAIN[0]
 

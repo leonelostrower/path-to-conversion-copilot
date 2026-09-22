@@ -245,7 +245,6 @@ def step_upload():
         st.markdown('#### 2. The client')
         client_name = st.text_input(
             'Client name', value=st.session_state['client_name'],
-            placeholder='e.g. Rates.ca',
             help='Used on the cover page and throughout the narrative.')
         subtitle = st.text_input('Report subtitle', value=st.session_state['subtitle'],
                                  placeholder='e.g. 2026 Q3: Quarterly Business Review')
